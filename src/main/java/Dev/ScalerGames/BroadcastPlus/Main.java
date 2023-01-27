@@ -39,10 +39,15 @@ public class Main extends JavaPlugin implements Listener {
         ab.autoMessage();
         new Metrics(this, 17055);
         updateChecker();
+        retrieveData();
     }
 
     @Override
     public void onDisable() {
+        List<String> storage = Data.getDataConfig().getStringList("auto-broadcast");
+        Main.plugin.autoBroadcast.forEach((player, option) -> storage.add(player + ":" + option));
+        Data.getDataConfig().set("auto-broadcast", storage);
+        Data.saveData();
     }
 
     public static Main getInstance() {return plugin;}
@@ -88,6 +93,17 @@ public class Main extends JavaPlugin implements Listener {
                 Messages.logger("&2You are using the latest version of BroadcastPlus");
             }
         });
+    }
+
+    public void retrieveData() {
+        try {
+            Data.getDataConfig().getStringList("auto-broadcast").forEach(settings -> {
+                String[] split = settings.split(":"); UUID player = UUID.fromString(split[0]); Boolean option = Boolean.valueOf(split[1]);
+                Main.plugin.autoBroadcast.put(player, option);
+            });
+        } catch (Exception ex) {
+            Messages.logger("&4Auto broadcast settings failed to load!");
+        }
     }
 
     public void enableListeners() {
