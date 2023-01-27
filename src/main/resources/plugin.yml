@@ -1,0 +1,28 @@
+name: BroadcastPlus
+version: 3.0.0
+main: Dev.ScalerGames.BroadcastPlus.Main
+api-version: 1.13
+author: ScalerGames
+description: A Minecraft Broadcasting plugin.
+softdepend:
+  - PlaceholderAPI
+  - LuckPerms
+loadbefore:
+  - Essentials
+commands:
+  broadcast:
+    aliases: [announce]
+  broadcastworld:
+    aliases: [bw]
+  localbroadcast:
+    aliases: [lb]
+  broadcastplus:
+    aliases: [bp]
+  randombroadcast:
+    aliases: [rb]
+  permbroadcast:
+    aliases: [pb]
+  practicebroadcast:
+    description: "A command to test a broadcast"
+  autobroadcast:
+    description: "A command to toggle the servers auto broadcasts"

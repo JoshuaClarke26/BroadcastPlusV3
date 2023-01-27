@@ -1,0 +1,50 @@
+#██████╗░██████╗░░█████╗░░█████╗░██████╗░░█████╗░░█████╗░░██████╗████████╗░░░░░░░
+#██╔══██╗██╔══██╗██╔══██╗██╔══██╗██╔══██╗██╔══██╗██╔══██╗██╔════╝╚══██╔══╝░░██╗░░
+#██████╦╝██████╔╝██║░░██║███████║██║░░██║██║░░╚═╝███████║╚█████╗░░░░██║░░░██████╗
+#██╔══██╗██╔══██╗██║░░██║██╔══██║██║░░██║██║░░██╗██╔══██║░╚═══██╗░░░██║░░░╚═██╔═╝
+#██████╦╝██║░░██║╚█████╔╝██║░░██║██████╔╝╚█████╔╝██║░░██║██████╔╝░░░██║░░░░░╚═╝░░
+#╚═════╝░╚═╝░░╚═╝░╚════╝░╚═╝░░╚═╝╚═════╝░░╚════╝░╚═╝░░╚═╝╚═════╝░░░░╚═╝░░░░░░░░░░
+
+#The Prefix For The Broadcast
+BroadcastPrefix: "&8&l[&c&lBroadcast&8&l] "
+
+#Title Settings
+#Timings are in ticks. [20 ticks = 1 second]
+TitleFadeIn: 1
+TitleDisplayTime: 20
+TitleFadeOut: 1
+
+AutoBroadcast:
+  #If auto broadcast is enabled or not.
+  #To enable or disable this feature a server restart is required!
+  enabled: false
+  #The time in seconds between broadcasting. This example is 5 minutes
+  time: 300
+  method: order
+  messages:
+    - 'Test1'
+    - 'Test2'
+    - 'Test3'
+    - 'preset:example'
+
+BossBar:
+  #These settings are backup settings if the ones provided fail.
+  #Make sure these are correct or the BossBar broadcast will fail.
+  Color: 'RED'
+  Style: 'SOLID'
+  Time: 10
+
+Presets:
+  example:
+    message:
+      - '&8&l&m========&3&lTest Server&8&l&m========'
+      - '&8&l- &cLine 1'
+      - '&8&l- #123456Line 2'
+      - '&8&l- &9%player_name%'
+      - '&8&l&m==========================='
+  10seconds:
+    boss:
+      color: 'RED'
+      style: 'SEGMENTED_10'
+      time: 10
+      text: '&c10 Seconds Boss Bar'

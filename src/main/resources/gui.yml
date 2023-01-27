@@ -1,0 +1,11 @@
+Menus:
+  example:
+    name: '&3Example GUI'
+    size: 27
+    items:
+      0:
+        item: 'DIRT'
+        slot: 0
+        display-name: '%player_name%'
+        events:
+          - "p-cmd:/give %player_name% DIAMOND_AXE 1"
