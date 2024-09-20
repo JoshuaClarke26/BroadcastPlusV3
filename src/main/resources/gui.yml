@@ -4,8 +4,14 @@ Menus:
     size: 27
     items:
       0:
-        item: 'DIRT'
-        slot: 0
-        display-name: '%player_name%'
+        item: 'DIAMOND_AXE'
+        slot: 13
+        display-name: '&3&lItem Giver'
+        lore:
+          - "&8-----------------------"
+          - "&bThis will give a diamond axe"
+          - "&bwhen clicked"
+        flags:
+          - "HIDE_ATTRIBUTES"
         events:
-          - "p-cmd:/give %player_name% DIAMOND_AXE 1"
+          - "c-cmd:minecraft:give %player_name% minecraft:diamond_axe 1"

@@ -12,13 +12,12 @@ import java.util.regex.Pattern;
 public class Format {
 
     public static String color(String msg) {
-        if (Bukkit.getVersion().contains("1.16") || Bukkit.getVersion().contains("1.17") || Bukkit.getVersion().contains("1.18")
-                || Bukkit.getVersion().contains("1.19")) {
+        if (hexSupported()) {
             Pattern pattern = Pattern.compile("#[a-fA-F0-9]{6}");
             Matcher match = pattern.matcher(msg);
             while (match.find()) {
                 String color = msg.substring(match.start(), match.end());
-                msg = msg.replace(color, ChatColor.of(color) + "");
+                msg = msg.replace(color, String.valueOf(ChatColor.of(color)));
                 match = pattern.matcher(msg);
             }
         }
@@ -33,13 +32,12 @@ public class Format {
 
         }
 
-        if (Bukkit.getVersion().contains("1.16") || Bukkit.getVersion().contains("1.17") || Bukkit.getVersion().contains("1.18")
-                || Bukkit.getVersion().contains("1.19")) {
+        if (hexSupported()) {
             Pattern pattern = Pattern.compile("#[a-fA-F0-9]{6}");
             Matcher match = pattern.matcher(msg);
             while (match.find()) {
                 String color = msg.substring(match.start(), match.end());
-                msg = msg.replace(color, ChatColor.of(color) + "");
+                msg = msg.replace(color, String.valueOf(ChatColor.of(color)));
                 match = pattern.matcher(msg);
             }
         }
@@ -57,6 +55,18 @@ public class Format {
         }
 
         return ChatColor.translateAlternateColorCodes('&', msg);
+    }
+
+    private static boolean hexSupported() {
+        try {
+            String[] version = Bukkit.getVersion().split("\\.");
+            if (Integer.parseInt(version[1]) >= 16) {
+                return true;
+            }
+        } catch (Exception ex) {
+            Messages.logger("&cFailed to retrieve Bukkit version");
+        }
+        return false;
     }
 
 }
