@@ -4,11 +4,14 @@ import Dev.ScalerGames.BroadcastPlus.Commands.CommandCheck;
 import Dev.ScalerGames.BroadcastPlus.Files.Gui;
 import Dev.ScalerGames.BroadcastPlus.Files.Lang;
 import Dev.ScalerGames.BroadcastPlus.Main;
+import Dev.ScalerGames.BroadcastPlus.Methods.Advancement;
 import Dev.ScalerGames.BroadcastPlus.Methods.BroadcastMethods;
 import Dev.ScalerGames.BroadcastPlus.Methods.Features;
 import Dev.ScalerGames.BroadcastPlus.Methods.Gui.GuiCreator;
+import Dev.ScalerGames.BroadcastPlus.Utils.Format;
 import Dev.ScalerGames.BroadcastPlus.Utils.Messages;
 import org.bukkit.Bukkit;
+import org.bukkit.Material;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
@@ -117,6 +120,27 @@ public class BroadcastWorld implements CommandExecutor, TabCompleter {
                         }
                     }
 
+                    else if(args[0].equalsIgnoreCase("advancement")) {
+                        if (args.length >= 4) {
+                            if (Bukkit.getWorld(args[1]) == null) {
+                                Messages.prefix(s, "&cInvalid World");
+                                return false;
+                            }
+
+                            if (Material.matchMaterial(args[2]) != null) {
+                                Bukkit.getOnlinePlayers().forEach(player -> {
+                                    if (player.getWorld().getName().equalsIgnoreCase(args[1])) {
+                                        Advancement.display(player, args[2].toLowerCase(), Advancement.Style.valueOf(args[3]), Format.placeholder(player, Messages.stringJoin(args, 4)));
+                                    }
+                                });
+                            } else {
+                                Messages.prefix(s, "&cInvalid Item");
+                            }
+                        } else {
+                            Messages.prefix(s, Lang.getLangConfig().getString("broadcast-advancement-usage"));
+                        }
+                    }
+
                     else {
                         Messages.prefix(s, Lang.getLangConfig().getString("broadcast-world-usage"));
                     }
@@ -129,10 +153,11 @@ public class BroadcastWorld implements CommandExecutor, TabCompleter {
         return false;
     }
 
-    List<String> method = Arrays.asList("chat", "title", "bar", "gui", "boss");
+    List<String> method = Arrays.asList("chat", "title", "bar", "gui", "boss", "advancement");
     List<String> worlds = new ArrayList<>();
     List<String> colors = Arrays.asList("BLUE", "GREEN", "PINK", "PURPLE", "RED", "WHITE", "YELLOW");
     List<String> styles = Arrays.asList("SOLID", "SEGMENTED_6", "SEGMENTED_10", "SEGMENTED_12", "SEGMENTED_20");
+    List<String> advanceStyles = Arrays.asList("GOAL", "TASK", "CHALLENGE");
 
     public List<String> onTabComplete (@NotNull CommandSender s, @NotNull Command cmd, @NotNull String label, String[] args) {
 
@@ -177,6 +202,17 @@ public class BroadcastWorld implements CommandExecutor, TabCompleter {
                 return sResult;
             }
 
+        }
+
+        if (args[0].equalsIgnoreCase("advancement")) {
+            List<String> sResult = new ArrayList<>();
+            if (args.length == 4) {
+                advanceStyles.forEach(style -> {
+                    if (style.toLowerCase().startsWith(args[3].toLowerCase()))
+                        sResult.add(style);
+                });
+                return sResult;
+            }
         }
 
         return null;

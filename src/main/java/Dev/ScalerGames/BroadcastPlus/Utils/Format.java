@@ -1,11 +1,13 @@
 package Dev.ScalerGames.BroadcastPlus.Utils;
 
+import Dev.ScalerGames.BroadcastPlus.Main;
 import me.clip.placeholderapi.PlaceholderAPI;
 import net.md_5.bungee.api.ChatColor;
 import org.apache.commons.lang.StringUtils;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 
+import java.util.Objects;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -64,8 +66,14 @@ public class Format {
                 return true;
             }
         } catch (Exception ex) {
-            Messages.logger("&cFailed to retrieve Bukkit version");
+            if (Main.getInstance().getConfig().contains("server-version")) {
+                String[] version = Objects.requireNonNull(Main.getInstance().getConfig().getString("server-version")).split("\\.");
+                return Integer.parseInt(version[1]) >= 16;
+            } else {
+                return false;
+            }
         }
+
         return false;
     }
 

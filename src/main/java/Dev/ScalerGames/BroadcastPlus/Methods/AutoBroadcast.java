@@ -25,7 +25,8 @@ public class AutoBroadcast {
                     Bukkit.getConsoleSender().sendMessage(Format.color(Messages.autoBroadcastMSG(msg)));
                     Bukkit.getOnlinePlayers().forEach(player -> {
                         if (Main.plugin.autoBroadcast.get(player.getUniqueId()) == null || Main.plugin.autoBroadcast.get(player.getUniqueId())) {
-                            player.sendMessage(Format.placeholder(player, Messages.autoBroadcastMSG(msg)));
+                            Features.broadcastChat(Messages.autoBroadcastMSG(msg), player);
+                            //player.sendMessage(Format.placeholder(player, Messages.autoBroadcastMSG(msg)));
                         }
                     });
                     if (msgLine == Main.getInstance().getConfig().getStringList("AutoBroadcast.messages").size()-1) {
@@ -38,7 +39,8 @@ public class AutoBroadcast {
                     Bukkit.getConsoleSender().sendMessage(Format.color(Messages.autoBroadcastMSG(msg)));
                     Bukkit.getOnlinePlayers().forEach(player -> {
                         if (Main.plugin.autoBroadcast.get(player.getUniqueId()) == null || Main.plugin.autoBroadcast.get(player.getUniqueId())) {
-                            player.sendMessage(Format.placeholder(player, Messages.autoBroadcastMSG(msg)));
+                            Features.broadcastChat(Messages.autoBroadcastMSG(msg), player);
+                            //player.sendMessage(Format.placeholder(player, Messages.autoBroadcastMSG(msg)));
                         }
                     });
                 }

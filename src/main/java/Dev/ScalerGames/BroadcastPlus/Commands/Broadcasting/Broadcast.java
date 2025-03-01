@@ -4,11 +4,14 @@ import Dev.ScalerGames.BroadcastPlus.Commands.CommandCheck;
 import Dev.ScalerGames.BroadcastPlus.Files.Gui;
 import Dev.ScalerGames.BroadcastPlus.Files.Lang;
 import Dev.ScalerGames.BroadcastPlus.Main;
+import Dev.ScalerGames.BroadcastPlus.Methods.Advancement;
 import Dev.ScalerGames.BroadcastPlus.Methods.BroadcastMethods;
 import Dev.ScalerGames.BroadcastPlus.Methods.Features;
 import Dev.ScalerGames.BroadcastPlus.Methods.Gui.GuiCreator;
+import Dev.ScalerGames.BroadcastPlus.Utils.Format;
 import Dev.ScalerGames.BroadcastPlus.Utils.Messages;
 import org.bukkit.Bukkit;
+import org.bukkit.Material;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
@@ -79,6 +82,18 @@ public class Broadcast implements CommandExecutor, TabCompleter {
                         }
                     }
 
+                    else if (args[0].equalsIgnoreCase("advancement")) {
+                        if (args.length >= 3) {
+                            if (Material.matchMaterial(args[1]) != null) {
+                                Bukkit.getOnlinePlayers().forEach(player -> Advancement.display(player, args[1].toLowerCase(), Advancement.Style.valueOf(args[2]), Format.placeholder(player, Messages.stringJoin(args, 3))));
+                            } else {
+                                Messages.prefix(s, "&cInvalid Item");
+                            }
+                        } else {
+                            Messages.prefix(s, Lang.getLangConfig().getString("broadcast-advancement-usage"));
+                        }
+                    }
+
                 } else {
                     Messages.prefix(s, Lang.getLangConfig().getString("broadcast-usage"));
                 }
@@ -87,9 +102,10 @@ public class Broadcast implements CommandExecutor, TabCompleter {
         return false;
     }
 
-    List<String> method = Arrays.asList("chat", "title", "bar", "gui", "boss");
+    List<String> method = Arrays.asList("chat", "title", "bar", "gui", "boss", "advancement");
     List<String> colors = Arrays.asList("BLUE", "GREEN", "PINK", "PURPLE", "RED", "WHITE", "YELLOW");
     List<String> styles = Arrays.asList("SOLID", "SEGMENTED_6", "SEGMENTED_10", "SEGMENTED_12", "SEGMENTED_20");
+    List<String> advanceStyles = Arrays.asList("GOAL", "TASK", "CHALLENGE");
 
     public List<String> onTabComplete(@NotNull CommandSender s, @NotNull Command cmd, @NotNull String label, String[] args) {
         if (args.length == 1) {
@@ -122,7 +138,31 @@ public class Broadcast implements CommandExecutor, TabCompleter {
 
         }
 
+        if (args[0].equalsIgnoreCase("advancement")) {
+           List<String> sResult = new ArrayList<>();
+           if (args.length == 3) {
+               advanceStyles.forEach(style -> {
+                   if (style.toLowerCase().startsWith(args[2].toLowerCase()))
+                       sResult.add(style);
+               });
+               return sResult;
+           }
+        }
+
         return null;
+    }
+
+    private String getItemKey(Material material) {
+        if(material.isBlock()){
+            String id = material.getKey().getKey();
+
+            return "block.minecraft."+id;
+        } else if(material.isItem()){
+            String id = material.getKey().getKey();
+
+            return "item.minecraft."+id;
+        }
+        return "block.minecraft.dirt";
     }
 
 }
