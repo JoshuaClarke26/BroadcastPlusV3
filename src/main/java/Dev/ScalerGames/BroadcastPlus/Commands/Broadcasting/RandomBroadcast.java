@@ -7,6 +7,7 @@ import Dev.ScalerGames.BroadcastPlus.Main;
 import Dev.ScalerGames.BroadcastPlus.Methods.BroadcastMethods;
 import Dev.ScalerGames.BroadcastPlus.Methods.Features;
 import Dev.ScalerGames.BroadcastPlus.Methods.Gui.GuiCreator;
+import Dev.ScalerGames.BroadcastPlus.Redis.RedisMessage;
 import Dev.ScalerGames.BroadcastPlus.Utils.Messages;
 import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
@@ -27,13 +28,18 @@ public class RandomBroadcast implements CommandExecutor {
 
                     if (args[0].equalsIgnoreCase("chat")) {
                         Player rand = (Player) Bukkit.getOnlinePlayers().toArray()[new Random().nextInt(Bukkit.getOnlinePlayers().size())];
-                        Features.broadcastChat(Messages.broadcastMSG(args, 1), rand);
+                        String chatMsg = Messages.broadcastMSG(args, 1);
+                        Features.broadcastChat(chatMsg, rand);
+                        redisPublish("chat", chatMsg, "");
                     }
 
                     else if (args[0].equalsIgnoreCase("bar")) {
                         if (args.length >= 3 && CommandCheck.isInt(args[1])) {
                             Player rand = (Player) Bukkit.getOnlinePlayers().toArray()[new Random().nextInt(Bukkit.getOnlinePlayers().size())];
-                            BroadcastMethods.sendActionBar(rand, Messages.stringJoin(args, 2), Integer.parseInt(args[1]));
+                            String barMsg = Messages.stringJoin(args, 2);
+                            int timing = Integer.parseInt(args[1]);
+                            BroadcastMethods.sendActionBar(rand, barMsg, timing);
+                            redisPublish("bar", barMsg, String.valueOf(timing));
                         } else {
                             Messages.prefix(s, Lang.getLangConfig().getString("random-broadcast-bar-usage"));
                         }
@@ -41,7 +47,9 @@ public class RandomBroadcast implements CommandExecutor {
 
                     else if (args[0].equalsIgnoreCase("title")) {
                         Player rand = (Player) Bukkit.getOnlinePlayers().toArray()[new Random().nextInt(Bukkit.getOnlinePlayers().size())];
-                        BroadcastMethods.sendTitle(rand, Messages.stringJoin(args, 1));
+                        String titleMsg = Messages.stringJoin(args, 1);
+                        BroadcastMethods.sendTitle(rand, titleMsg);
+                        redisPublish("title", titleMsg, "");
                     }
 
                     else if (args[0].equalsIgnoreCase("gui")) {
@@ -56,21 +64,25 @@ public class RandomBroadcast implements CommandExecutor {
                     else if (args[0].equalsIgnoreCase("boss")) {
                         if (args.length == 2) {
                             if (Main.getInstance().getConfig().contains("Presets." + args[1] + ".boss")) {
-                                Main.bar.createBar(Main.getInstance().getConfig().getInt("Presets." + args[1] + ".boss.time"),
-                                        Main.getInstance().getConfig().getString("Presets." + args[1] + ".boss.color"),
-                                        Main.getInstance().getConfig().getString("Presets." + args[1] + ".boss.style"),
-                                        Main.getInstance().getConfig().getString("Presets." + args[1] + ".boss.text"));
+                                int t = Main.getInstance().getConfig().getInt("Presets." + args[1] + ".boss.time");
+                                String c = Main.getInstance().getConfig().getString("Presets." + args[1] + ".boss.color");
+                                String st = Main.getInstance().getConfig().getString("Presets." + args[1] + ".boss.style");
+                                String tx = Main.getInstance().getConfig().getString("Presets." + args[1] + ".boss.text");
+                                Main.bar.createBar(t, c, st, tx);
                                 Player rand = (Player) Bukkit.getOnlinePlayers().toArray()[new Random().nextInt(Bukkit.getOnlinePlayers().size())];
                                 Main.bar.addPlayer(rand);
+                                redisPublish("boss", tx, t + "|" + c + "|" + st);
                             } else {
                                 Messages.prefix(s, "&cInvalid Preset Name");
                             }
                         }
                         else if (args.length >= 5) {
                             if (CommandCheck.isInt(args[1])) {
-                                Main.bar.createBar(Integer.parseInt(args[1]), args[2], args[3], Messages.stringJoin(args, 4));
+                                String bossMsg = Messages.stringJoin(args, 4);
+                                Main.bar.createBar(Integer.parseInt(args[1]), args[2], args[3], bossMsg);
                                 Player rand = (Player) Bukkit.getOnlinePlayers().toArray()[new Random().nextInt(Bukkit.getOnlinePlayers().size())];
                                 Main.bar.addPlayer(rand);
+                                redisPublish("boss", bossMsg, args[1] + "|" + args[2] + "|" + args[3]);
                             } else {
                                 Messages.prefix(s, Lang.getLangConfig().getString("&cInvalid Timing"));
                             }
@@ -89,6 +101,13 @@ public class RandomBroadcast implements CommandExecutor {
             }
         }
         return false;
+    }
+
+    private void redisPublish(String type, String message, String extra) {
+        if (Main.redis != null && Main.redis.isEnabled()) {
+            String server = Main.getInstance().getConfig().getString("Redis.server-name", "default");
+            Main.redis.publish(new RedisMessage(type, message, extra, server));
+        }
     }
 
 }
