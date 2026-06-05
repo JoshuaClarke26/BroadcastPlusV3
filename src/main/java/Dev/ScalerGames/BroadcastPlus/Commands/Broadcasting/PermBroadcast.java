@@ -7,6 +7,7 @@ import Dev.ScalerGames.BroadcastPlus.Main;
 import Dev.ScalerGames.BroadcastPlus.Methods.BroadcastMethods;
 import Dev.ScalerGames.BroadcastPlus.Methods.Features;
 import Dev.ScalerGames.BroadcastPlus.Methods.Gui.GuiCreator;
+import Dev.ScalerGames.BroadcastPlus.Redis.RedisMessage;
 import Dev.ScalerGames.BroadcastPlus.Utils.Messages;
 import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
@@ -28,21 +29,26 @@ public class PermBroadcast implements CommandExecutor, TabCompleter {
                 if (args.length >= 3) {
 
                     if (args[0].equalsIgnoreCase("chat")) {
+                        String chatMsg = Messages.broadcastMSG(args, 2);
                         Bukkit.getOnlinePlayers().forEach(player -> {
                             if (player.hasPermission(args[1])) {
-                                Features.broadcastChat(Messages.broadcastMSG(args, 2), player);
+                                Features.broadcastChat(chatMsg, player);
                             }
                         });
+                        redisPublish("chat", chatMsg, "");
                     }
 
                     else if (args[0].equalsIgnoreCase("bar")) {
                         if (args.length >= 4) {
                             if (CommandCheck.isInt(args[2])) {
+                                String barMsg = Messages.stringJoin(args, 3);
+                                int timing = Integer.parseInt(args[3]);
                                 Bukkit.getOnlinePlayers().forEach(player -> {
                                     if (player.hasPermission(args[1])) {
-                                        BroadcastMethods.sendActionBar(player, Messages.stringJoin(args, 3), Integer.parseInt(args[3]));
+                                        BroadcastMethods.sendActionBar(player, barMsg, timing);
                                     }
                                 });
+                                redisPublish("bar", barMsg, String.valueOf(timing));
                             } else {
                                 Messages.prefix(s, "&cInvalid Timing");
                             }
@@ -52,11 +58,13 @@ public class PermBroadcast implements CommandExecutor, TabCompleter {
                     }
 
                     else if (args[0].equalsIgnoreCase("title")) {
+                        String titleMsg = Messages.stringJoin(args, 2);
                         Bukkit.getOnlinePlayers().forEach(player -> {
                             if (player.hasPermission(args[1])) {
-                                BroadcastMethods.sendTitle(player, Messages.stringJoin(args, 2));
+                                BroadcastMethods.sendTitle(player, titleMsg);
                             }
                         });
+                        redisPublish("title", titleMsg, "");
                     }
 
                     else if (args[0].equalsIgnoreCase("gui")) {
@@ -74,26 +82,30 @@ public class PermBroadcast implements CommandExecutor, TabCompleter {
                     else if (args[0].equalsIgnoreCase("boss")) {
                         if (args.length == 3) {
                             if (Main.getInstance().getConfig().contains("Presets." + args[2] + ".boss")) {
-                                Main.bar.createBar(Main.getInstance().getConfig().getInt("Presets." + args[2] + ".boss.time"),
-                                        Main.getInstance().getConfig().getString("Presets." + args[2] + ".boss.color"),
-                                        Main.getInstance().getConfig().getString("Presets." + args[2] + ".boss.style"),
-                                        Main.getInstance().getConfig().getString("Presets." + args[2] + ".boss.text"));
+                                int t = Main.getInstance().getConfig().getInt("Presets." + args[2] + ".boss.time");
+                                String c = Main.getInstance().getConfig().getString("Presets." + args[2] + ".boss.color");
+                                String st = Main.getInstance().getConfig().getString("Presets." + args[2] + ".boss.style");
+                                String tx = Main.getInstance().getConfig().getString("Presets." + args[2] + ".boss.text");
+                                Main.bar.createBar(t, c, st, tx);
                                 Bukkit.getOnlinePlayers().forEach(player -> {
                                     if (player.hasPermission(args[1])) {
                                         Main.bar.addPlayer(player);
                                     }
                                 });
+                                redisPublish("boss", tx, t + "|" + c + "|" + st);
                             } else {
                                 Messages.prefix(s, "&cInvalid Preset Name");
                             }
                         }
                          else if (args.length >= 6 && CommandCheck.isInt(args[2])) {
-                            Main.bar.createBar(Integer.parseInt(args[2]), args[3], args[4], Messages.stringJoin(args, 5));
+                            String bossMsg = Messages.stringJoin(args, 5);
+                            Main.bar.createBar(Integer.parseInt(args[2]), args[3], args[4], bossMsg);
                             Bukkit.getOnlinePlayers().forEach(player -> {
                                 if (player.hasPermission(args[1])) {
                                     Main.bar.addPlayer(player);
                                 }
                             });
+                            redisPublish("boss", bossMsg, args[2] + "|" + args[3] + "|" + args[4]);
                         } else {
                             Messages.prefix(s, Lang.getLangConfig().getString("perm-broadcast-boss-usage"));
                         }
@@ -148,6 +160,13 @@ public class PermBroadcast implements CommandExecutor, TabCompleter {
         }
 
         return null;
+    }
+
+    private void redisPublish(String type, String message, String extra) {
+        if (Main.redis != null && Main.redis.isEnabled()) {
+            String server = Main.getInstance().getConfig().getString("Redis.server-name", "default");
+            Main.redis.publish(new RedisMessage(type, message, extra, server));
+        }
     }
 
 }

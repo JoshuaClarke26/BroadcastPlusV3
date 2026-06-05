@@ -10,6 +10,7 @@ import Dev.ScalerGames.BroadcastPlus.Files.Lang;
 import Dev.ScalerGames.BroadcastPlus.Methods.AutoBroadcast;
 import Dev.ScalerGames.BroadcastPlus.Methods.BossBar;
 import Dev.ScalerGames.BroadcastPlus.Methods.Gui.GuiListener;
+import Dev.ScalerGames.BroadcastPlus.Redis.RedisManager;
 import Dev.ScalerGames.BroadcastPlus.Utils.Messages;
 import Dev.ScalerGames.BroadcastPlus.Utils.Metrics;
 import Dev.ScalerGames.BroadcastPlus.Utils.Placeholders;
@@ -24,6 +25,7 @@ public class Main extends JavaPlugin implements Listener {
 
     public static Main plugin;
     public static BossBar bar;
+    public static RedisManager redis;
     public final Map<UUID, Boolean> autoBroadcast = new HashMap<>();
     public static AutoBroadcast ab;
 
@@ -36,6 +38,7 @@ public class Main extends JavaPlugin implements Listener {
         enablePlugins();
         bar = new BossBar(this);
         ab = new AutoBroadcast(this);
+        enableRedis();
         ab.autoMessage();
         new Metrics(this, 17055);
         updateChecker();
@@ -48,6 +51,7 @@ public class Main extends JavaPlugin implements Listener {
         Main.plugin.autoBroadcast.forEach((player, option) -> storage.add(player + ":" + option));
         Data.getDataConfig().set("auto-broadcast", storage);
         Data.saveData();
+        if (redis != null) redis.shutdown();
     }
 
     public static Main getInstance() {return plugin;}
@@ -108,6 +112,13 @@ public class Main extends JavaPlugin implements Listener {
 
     public void enableListeners() {
         Bukkit.getPluginManager().registerEvents(new GuiListener(), this);
+    }
+
+    public void enableRedis() {
+        if (getConfig().getBoolean("Redis.enabled", false)) {
+            redis = new RedisManager(this);
+            redis.connect();
+        }
     }
 
 }
