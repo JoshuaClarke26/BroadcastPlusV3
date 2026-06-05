@@ -29,21 +29,41 @@ public class Broadcast implements CommandExecutor, TabCompleter {
     public boolean onCommand(@NotNull CommandSender s, @NotNull Command cmd, String label, String[] args) {
         if (label.equalsIgnoreCase("broadcast") || label.equalsIgnoreCase("announce")) {
             if (CommandCheck.execute(s, "bp.broadcast", false)) {
-                if (args.length >= 2) {
 
-                    if (args[0].equalsIgnoreCase("chat")) {
-                        String chatMsg = Messages.broadcastMSG(args, 1);
-                        Bukkit.getOnlinePlayers().forEach(p -> Features.broadcastChat(chatMsg, p));
-                        redisPublish("chat", chatMsg, "");
+                // --- Parse optional --server <name> prefix ---
+                // Usage with server: /broadcast --server <serverName> <method> [args...]
+                // Usage global:      /broadcast <method> [args...]
+                String targetServer = null;
+                int offset = 0;
+
+                if (args.length >= 2 && args[0].equalsIgnoreCase("--server")) {
+                    targetServer = args[1];
+                    offset = 2; // skip '--server <name>'
+                }
+
+                // After stripping the optional prefix, we need at least method + 1 arg
+                // (except for some methods that only need the method itself)
+                String[] effectiveArgs = Arrays.copyOfRange(args, offset, args.length);
+
+                if (effectiveArgs.length >= 2) {
+
+                    if (effectiveArgs[0].equalsIgnoreCase("chat")) {
+                        String chatMsg = Messages.broadcastMSG(effectiveArgs, 1);
+                        if (shouldExecuteLocally(targetServer)) {
+                            Bukkit.getOnlinePlayers().forEach(p -> Features.broadcastChat(chatMsg, p));
+                        }
+                        redisPublish("chat", chatMsg, "", targetServer);
                     }
 
-                    else if (args[0].equalsIgnoreCase("bar")) {
-                        if (args.length >= 3) {
-                            if (CommandCheck.isInt(args[1])) {
-                                String barMsg = Messages.stringJoin(args, 2);
-                                int timing = Integer.parseInt(args[1]);
-                                Bukkit.getOnlinePlayers().forEach(player -> BroadcastMethods.sendActionBar(player, barMsg, timing));
-                                redisPublish("bar", barMsg, String.valueOf(timing));
+                    else if (effectiveArgs[0].equalsIgnoreCase("bar")) {
+                        if (effectiveArgs.length >= 3) {
+                            if (CommandCheck.isInt(effectiveArgs[1])) {
+                                String barMsg = Messages.stringJoin(effectiveArgs, 2);
+                                int timing = Integer.parseInt(effectiveArgs[1]);
+                                if (shouldExecuteLocally(targetServer)) {
+                                    Bukkit.getOnlinePlayers().forEach(player -> BroadcastMethods.sendActionBar(player, barMsg, timing));
+                                }
+                                redisPublish("bar", barMsg, String.valueOf(timing), targetServer);
                             } else {
                                 Messages.prefix(s, "&cInvalid Timing");
                             }
@@ -52,41 +72,49 @@ public class Broadcast implements CommandExecutor, TabCompleter {
                         }
                     }
 
-                    else if (args[0].equalsIgnoreCase("title")) {
-                        String titleMsg = Messages.stringJoin(args, 1);
-                        Bukkit.getOnlinePlayers().forEach(player -> BroadcastMethods.sendTitle(player, titleMsg));
-                        redisPublish("title", titleMsg, "");
+                    else if (effectiveArgs[0].equalsIgnoreCase("title")) {
+                        String titleMsg = Messages.stringJoin(effectiveArgs, 1);
+                        if (shouldExecuteLocally(targetServer)) {
+                            Bukkit.getOnlinePlayers().forEach(player -> BroadcastMethods.sendTitle(player, titleMsg));
+                        }
+                        redisPublish("title", titleMsg, "", targetServer);
                     }
 
-                    else if (args[0].equalsIgnoreCase("gui")) {
-                        if (args.length == 2 && Objects.requireNonNull(Gui.getGuiConfig().getConfigurationSection("Menus")).getKeys(false).contains(args[1])) {
-                            Bukkit.getOnlinePlayers().forEach(player -> GuiCreator.generate(player, args[1]));
+                    else if (effectiveArgs[0].equalsIgnoreCase("gui")) {
+                        if (effectiveArgs.length == 2 && Objects.requireNonNull(Gui.getGuiConfig().getConfigurationSection("Menus")).getKeys(false).contains(effectiveArgs[1])) {
+                            if (shouldExecuteLocally(targetServer)) {
+                                Bukkit.getOnlinePlayers().forEach(player -> GuiCreator.generate(player, effectiveArgs[1]));
+                            }
                             // GUI is not synchronized via Redis (it depends on local state).
                         } else {
                             Messages.prefix(s, "&cInvalid GUI Name");
                         }
                     }
 
-                    else if (args[0].equalsIgnoreCase("boss")) {
-                        if (args.length == 2) {
-                            if (Main.getInstance().getConfig().contains("Presets." + args[1] + ".boss")) {
-                                int t = Main.getInstance().getConfig().getInt("Presets." + args[1] + ".boss.time");
-                                String c = Main.getInstance().getConfig().getString("Presets." + args[1] + ".boss.color");
-                                String st = Main.getInstance().getConfig().getString("Presets." + args[1] + ".boss.style");
-                                String tx = Main.getInstance().getConfig().getString("Presets." + args[1] + ".boss.text");
-                                Main.bar.createBar(t, c, st, tx);
-                                Bukkit.getOnlinePlayers().forEach(player -> Main.bar.addPlayer(player));
-                                redisPublish("boss", tx, t + "|" + c + "|" + st);
+                    else if (effectiveArgs[0].equalsIgnoreCase("boss")) {
+                        if (effectiveArgs.length == 2) {
+                            if (Main.getInstance().getConfig().contains("Presets." + effectiveArgs[1] + ".boss")) {
+                                int t = Main.getInstance().getConfig().getInt("Presets." + effectiveArgs[1] + ".boss.time");
+                                String c = Main.getInstance().getConfig().getString("Presets." + effectiveArgs[1] + ".boss.color");
+                                String st = Main.getInstance().getConfig().getString("Presets." + effectiveArgs[1] + ".boss.style");
+                                String tx = Main.getInstance().getConfig().getString("Presets." + effectiveArgs[1] + ".boss.text");
+                                if (shouldExecuteLocally(targetServer)) {
+                                    Main.bar.createBar(t, c, st, tx);
+                                    Bukkit.getOnlinePlayers().forEach(player -> Main.bar.addPlayer(player));
+                                }
+                                redisPublish("boss", tx, t + "|" + c + "|" + st, targetServer);
                             } else {
                                 Messages.prefix(s, "&cInvalid Preset Name");
                             }
                         }
-                        else if (args.length >= 5) {
-                            if (CommandCheck.isInt(args[1])) {
-                                String bossMsg = Messages.stringJoin(args, 4);
-                                Main.bar.createBar(Integer.parseInt(args[1]), args[2], args[3], bossMsg);
-                                Bukkit.getOnlinePlayers().forEach(player -> Main.bar.addPlayer(player));
-                                redisPublish("boss", bossMsg, args[1] + "|" + args[2] + "|" + args[3]);
+                        else if (effectiveArgs.length >= 5) {
+                            if (CommandCheck.isInt(effectiveArgs[1])) {
+                                String bossMsg = Messages.stringJoin(effectiveArgs, 4);
+                                if (shouldExecuteLocally(targetServer)) {
+                                    Main.bar.createBar(Integer.parseInt(effectiveArgs[1]), effectiveArgs[2], effectiveArgs[3], bossMsg);
+                                    Bukkit.getOnlinePlayers().forEach(player -> Main.bar.addPlayer(player));
+                                }
+                                redisPublish("boss", bossMsg, effectiveArgs[1] + "|" + effectiveArgs[2] + "|" + effectiveArgs[3], targetServer);
                             } else {
                                 Messages.prefix(s, "&cInvalid Timing");
                             }
@@ -95,12 +123,14 @@ public class Broadcast implements CommandExecutor, TabCompleter {
                         }
                     }
 
-                    else if (args[0].equalsIgnoreCase("advancement")) {
-                        if (args.length >= 3) {
-                            if (Material.matchMaterial(args[1]) != null) {
-                                String advMsg = Messages.stringJoin(args, 3);
-                                Bukkit.getOnlinePlayers().forEach(player -> Advancement.display(player, args[1].toLowerCase(), Advancement.Style.valueOf(args[2]), Format.placeholder(player, advMsg)));
-                                redisPublish("advancement", advMsg, args[1].toLowerCase() + "|" + args[2]);
+                    else if (effectiveArgs[0].equalsIgnoreCase("advancement")) {
+                        if (effectiveArgs.length >= 3) {
+                            if (Material.matchMaterial(effectiveArgs[1]) != null) {
+                                String advMsg = Messages.stringJoin(effectiveArgs, 3);
+                                if (shouldExecuteLocally(targetServer)) {
+                                    Bukkit.getOnlinePlayers().forEach(player -> Advancement.display(player, effectiveArgs[1].toLowerCase(), Advancement.Style.valueOf(effectiveArgs[2]), Format.placeholder(player, advMsg)));
+                                }
+                                redisPublish("advancement", advMsg, effectiveArgs[1].toLowerCase() + "|" + effectiveArgs[2], targetServer);
                             } else {
                                 Messages.prefix(s, "&cInvalid Item");
                             }
@@ -123,41 +153,59 @@ public class Broadcast implements CommandExecutor, TabCompleter {
     List<String> advanceStyles = Arrays.asList("GOAL", "TASK", "CHALLENGE");
 
     public List<String> onTabComplete(@NotNull CommandSender s, @NotNull Command cmd, @NotNull String label, String[] args) {
-        if (args.length == 1) {
+        // Detect if we are in "--server <name> ..." mode
+        int offset = 0;
+        if (args.length >= 1 && args[0].equalsIgnoreCase("--server")) {
+            // args[1] would be server name (free text), args[2] would be method
+            if (args.length == 1) return List.of("--server");
+            if (args.length == 2) return List.of("<server-name>");
+            offset = 2;
+        }
+
+        String[] effectiveArgs = Arrays.copyOfRange(args, offset, args.length);
+
+        if (effectiveArgs.length == 0) {
+            return List.of("--server", "chat", "title", "bar", "gui", "boss", "advancement");
+        }
+
+        if (effectiveArgs.length == 1) {
             List<String> result = new ArrayList<>();
+            // Also offer --server at position 1 (if offset == 0)
+            if (offset == 0 && "--server".startsWith(effectiveArgs[0].toLowerCase())) {
+                result.add("--server");
+            }
             method.forEach(a -> {
-                if (a.toLowerCase().startsWith(args[0].toLowerCase()))
+                if (a.toLowerCase().startsWith(effectiveArgs[0].toLowerCase()))
                     result.add(a);
             });
             return result;
         }
 
-        if (args[0].equalsIgnoreCase("boss")) {
+        if (effectiveArgs[0].equalsIgnoreCase("boss")) {
             List<String> cResult = new ArrayList<>();
-            if (args.length == 3) {
+            if (effectiveArgs.length == 3) {
                 colors.forEach(color -> {
-                    if (color.toLowerCase().startsWith(args[2].toLowerCase()))
+                    if (color.toLowerCase().startsWith(effectiveArgs[2].toLowerCase()))
                         cResult.add(color);
                 });
                 return cResult;
             }
 
             List<String> sResult = new ArrayList<>();
-            if (args.length == 4) {
+            if (effectiveArgs.length == 4) {
                 styles.forEach(style -> {
-                    if (style.toLowerCase().startsWith(args[3].toLowerCase()))
+                    if (style.toLowerCase().startsWith(effectiveArgs[3].toLowerCase()))
                         sResult.add(style);
                 });
                 return sResult;
             }
-
         }
 
-        if (args[0].equalsIgnoreCase("advancement")) {
+        if (effectiveArgs[0].equalsIgnoreCase("advancement")) {
            List<String> sResult = new ArrayList<>();
-           if (args.length == 3) {
+           if (effectiveArgs.length == 3) {
                advanceStyles.forEach(style -> {
-                   if (style.toLowerCase().startsWith(args[2].toLowerCase()))
+                   if (style.toLowerCase().startsWith(effectiveArgs[2].toLowerCase()))
                        sResult.add(style);
                });
                return sResult;
@@ -167,10 +215,31 @@ public class Broadcast implements CommandExecutor, TabCompleter {
         return null;
     }
 
-    private void redisPublish(String type, String message, String extra) {
+    /**
+     * Publishes a broadcast to Redis.
+     *
+     * @param type         Broadcast type (chat, title, bar, etc.)
+     * @param message      The message content
+     * @param extra        Extra parameters (timing, color, etc.)
+     * @param targetServer The target server name, or null for a global broadcast
+     */
+    /**
+     * Returns true if the broadcast should be executed on this server:
+     * - targetServer is null/empty → global broadcast, always execute locally.
+     * - targetServer is set → execute locally only if this server is in the target list.
+     */
+    private boolean shouldExecuteLocally(String targetServer) {
+        if (targetServer == null || targetServer.isEmpty()) return true;
+        String thisServer = Main.getInstance().getConfig().getString("Redis.server-name", "default");
+        return Arrays.stream(targetServer.split(","))
+                .map(String::trim)
+                .anyMatch(t -> t.equalsIgnoreCase(thisServer));
+    }
+
+    private void redisPublish(String type, String message, String extra, String targetServer) {
         if (Main.redis != null && Main.redis.isEnabled()) {
             String server = Main.getInstance().getConfig().getString("Redis.server-name", "default");
-            Main.redis.publish(new RedisMessage(type, message, extra, server));
+            Main.redis.publish(new RedisMessage(type, message, extra, server, targetServer));
         }
     }
 

@@ -22,17 +22,33 @@ public class RedisMessage {
     /** Origin server name (to avoid re-broadcasting on the same server) */
     private final String originServer;
 
+    /**
+     * Target server name. If null or empty, the broadcast is sent to ALL servers.
+     * If set, only the server with this name will process the message.
+     */
+    private final String targetServer;
+
     public RedisMessage(String type, String message, String extra, String originServer) {
+        this(type, message, extra, originServer, null);
+    }
+
+    public RedisMessage(String type, String message, String extra, String originServer, String targetServer) {
         this.type = type;
         this.message = message;
         this.extra = extra;
         this.originServer = originServer;
+        this.targetServer = (targetServer != null && !targetServer.isEmpty()) ? targetServer : null;
     }
 
     public String getType()         { return type; }
     public String getMessage()      { return message; }
     public String getExtra()        { return extra != null ? extra : ""; }
     public String getOriginServer() { return originServer; }
+
+    /**
+     * Returns the target server name, or null if the broadcast is global.
+     */
+    public String getTargetServer() { return targetServer; }
 
     /** Serializes to JSON */
     public String toJson() {

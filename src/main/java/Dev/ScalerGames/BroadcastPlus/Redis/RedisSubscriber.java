@@ -9,6 +9,8 @@ import Dev.ScalerGames.BroadcastPlus.Utils.Messages;
 import org.bukkit.Bukkit;
 import redis.clients.jedis.JedisPubSub;
 
+import java.util.Arrays;
+
 /**
  * Receives messages from the Redis channel and executes them on the local server.
  * Runs on a separate thread; broadcasts are dispatched
@@ -29,6 +31,16 @@ public class RedisSubscriber extends JedisPubSub {
         // Ignore messages originating from this same server
         String thisServer = plugin.getConfig().getString("Redis.server-name", "default");
         if (thisServer.equalsIgnoreCase(msg.getOriginServer())) return;
+
+        // If specific target server(s) are set, only process on those servers.
+        // targetServer may be a single name ("survival") or a comma-separated list ("survival,minigames").
+        String target = msg.getTargetServer();
+        if (target != null && !target.isEmpty()) {
+            boolean isTargeted = Arrays.stream(target.split(","))
+                    .map(String::trim)
+                    .anyMatch(t -> t.equalsIgnoreCase(thisServer));
+            if (!isTargeted) return;
+        }
 
         // Dispatch to the main Bukkit thread
         Bukkit.getScheduler().runTask(plugin, () -> dispatch(msg));
